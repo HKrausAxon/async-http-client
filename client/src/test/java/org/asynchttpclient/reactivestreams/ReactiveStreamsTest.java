@@ -17,6 +17,7 @@ import static org.asynchttpclient.test.TestUtils.*;
 import static org.testng.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -102,19 +103,24 @@ public class ReactiveStreamsTest extends AbstractBasicTest {
 
     @Test(groups = "standalone")
     public void cancelStreamedResponseTest() throws Throwable {
+        // Cancel immediately
+        createClientAndCancelAfterN(0);
+
+        // Cancel after 1 element
+        createClientAndCancelAfterN(1);
+
+        // Cancel after 10 elements
+        createClientAndCancelAfterN(10);
+
         try (AsyncHttpClient c = asyncHttpClient()) {
-
-            // Cancel immediately
-            c.preparePost(getTargetUrl()).setBody(LARGE_IMAGE_BYTES).execute(new CancellingStreamedAsyncProvider(0)).get();
-
-            // Cancel after 1 element
-            c.preparePost(getTargetUrl()).setBody(LARGE_IMAGE_BYTES).execute(new CancellingStreamedAsyncProvider(1)).get();
-
-            // Cancel after 10 elements
-            c.preparePost(getTargetUrl()).setBody(LARGE_IMAGE_BYTES).execute(new CancellingStreamedAsyncProvider(10)).get();
-
             // Make sure a regular request works
             assertEquals(c.preparePost(getTargetUrl()).setBody("Hello").execute().get().getResponseBody(), "Hello");
+        }
+    }
+
+    private void createClientAndCancelAfterN(final int n) throws IOException, InterruptedException, ExecutionException {
+        try (AsyncHttpClient c = asyncHttpClient()) {
+            c.preparePost(getTargetUrl()).setBody(LARGE_IMAGE_BYTES).execute(new CancellingStreamedAsyncProvider(n)).get();
         }
     }
 
